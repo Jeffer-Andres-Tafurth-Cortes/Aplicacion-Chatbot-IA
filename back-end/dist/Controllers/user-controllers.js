@@ -1,5 +1,7 @@
 import User from "../Models/User.js";
 import { hash, compare } from 'bcrypt';
+import { createToken } from "../Utils/token-manager.js";
+import { COOKIE_NAME } from "../Utils/constants.js";
 // Esta funcion define la peticion GET para obtener todos los usuarios
 export async function getAllUsers(req, res, next) {
     try {
@@ -24,6 +26,17 @@ export async function userSignup(req, res, next) {
         // Se crea un nuevo usuario con los datos recibidos y se guarda en la base de datos
         const user = new User({ name, email, password: hashedPassword });
         await user.save();
+        // Posterior a crear el usuario, se crea uun token y se guarda la cookie
+        const token = createToken(user.id.toString(), user.email, '7d');
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 7);
+        res.cookie(COOKIE_NAME, token, {
+            path: '/',
+            domain: 'localhost',
+            expires,
+            httpOnly: true,
+            signed: true,
+        });
         return res.status(200).json({ message: 'OK', id: user._id.toString() });
     }
     catch (error) {
@@ -45,7 +58,23 @@ export async function userLogin(req, res, next) {
         if (!isPasswordCorrect) {
             return res.status(403).send('La contraseña no coincide con el usuario registrado');
         }
-        await user.save();
+        res.clearCookie(COOKIE_NAME, {
+            httpOnly: true,
+            domain: 'localhost',
+            signed: true,
+            path: '/'
+        });
+        // Se crea un token de acceso para el usuario
+        const token = createToken(user.id.toString(), user.email, '7d');
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 7);
+        res.cookie(COOKIE_NAME, token, {
+            path: '/',
+            domain: 'localhost',
+            expires,
+            httpOnly: true,
+            signed: true,
+        });
         return res.status(200).json({ message: 'OK', });
     }
     catch (error) {

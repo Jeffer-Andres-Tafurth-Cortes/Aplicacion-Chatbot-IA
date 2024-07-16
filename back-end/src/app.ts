@@ -8,12 +8,15 @@ config()
 
 // Importamos el router de rutas del 'index.ts' de la carpeta 'Routes'
 import appRouter from "./Routes/index.js";
+import cookieParser from "cookie-parser";
 
 // Definimos la app para implementar express()
 const app = express()
 
 // Implementamos el Middleware
 app.use(express.json())
+app.use(cookieParser(process.env.COOKIE_SECRET))
+
 app.use(morgan('dev'))
 
 app.use('/api/v1/', appRouter)
